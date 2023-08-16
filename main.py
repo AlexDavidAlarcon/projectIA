@@ -1,6 +1,25 @@
 import cv2
 import numpy as np
 import pytesseract
+#from gensim.models import KeyedVectors libreria
+"""
+# Cargar modelo de embeddings en formato .vec (Word2Vec)
+embeddings_model = KeyedVectors.load_word2vec_format('embeddings-l-model.vec', binary=False, limit=50000)
+
+# Función para obtener sinónimos de una palabra
+def obtener_sinonimos(palabra, topn=20):
+    try:
+        sinonimos = embeddings_model.most_similar(positive=[palabra], topn=topn)
+        return [sinonimo[0] for sinonimo in sinonimos]
+    except KeyError:
+        return []
+
+# Palabra de ejemplo para obtener sus sinónimos
+palabra_ejemplo = "dirección"
+sinonimos_ejemplo = obtener_sinonimos(palabra_ejemplo)
+
+print(f"Sinónimos de '{palabra_ejemplo}': {sinonimos_ejemplo}")
+"""
 
 # Configurar Tesseract
 pytesseract.pytesseract.tesseract_cmd = r"C:/Program Files/Tesseract-OCR/tesseract"
