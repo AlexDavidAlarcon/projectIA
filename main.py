@@ -1,25 +1,8 @@
 import cv2
 import numpy as np
 import pytesseract
-#from gensim.models import KeyedVectors libreria
-"""
-# Cargar modelo de embeddings en formato .vec (Word2Vec)
-embeddings_model = KeyedVectors.load_word2vec_format('embeddings-l-model.vec', binary=False, limit=50000)
+from gensim.models import KeyedVectors
 
-# Función para obtener sinónimos de una palabra
-def obtener_sinonimos(palabra, topn=20):
-    try:
-        sinonimos = embeddings_model.most_similar(positive=[palabra], topn=topn)
-        return [sinonimo[0] for sinonimo in sinonimos]
-    except KeyError:
-        return []
-
-# Palabra de ejemplo para obtener sus sinónimos
-palabra_ejemplo = "dirección"
-sinonimos_ejemplo = obtener_sinonimos(palabra_ejemplo)
-
-print(f"Sinónimos de '{palabra_ejemplo}': {sinonimos_ejemplo}")
-"""
 
 # Configurar Tesseract
 pytesseract.pytesseract.tesseract_cmd = r"C:/Program Files/Tesseract-OCR/tesseract"
@@ -105,12 +88,43 @@ def leerFormulario(img):
     return contents_dictionary
 
 
-
 dic_lleno = leerFormulario(img_lleno)
 
 dic_vacio = leerFormulario(img_vacio)
 
+# como se podria aplicar al proyecto
+"""
+dic_lleno ={'nombres':'Denisse','residencia':'mucho lote','email':'deniagui@espol'}
+dic_vacio={'nombres':'','domicilio':'','correo':''}
 
 print("diccionario vacio: ", dic_vacio)
 print("diccionario lleno: ", dic_lleno)
+
+# Obtener las claves de ambos diccionarios
+claves_formlleno = dic_lleno.keys()
+claves_formvacio = dic_vacio.keys()
+
+## Cargar modelo de embeddings en formato .vec (Word2Vec)
+embeddings_model = KeyedVectors.load_word2vec_format('embeddings-l-model.vec', binary=False, limit=50000)
+
+for clave1 in claves_formvacio:
+    if clave1 not in claves_formlleno:
+            print(f"Buscando sinónimos para clave '{clave1}':")
+            similares = embeddings_model.most_similar(clave1)
+            palabras_similares = [similar[0] for similar in similares]
+            print(palabras_similares)
+            encontrada = False
+            for palabra_similar in palabras_similares:
+                if palabra_similar in claves_formlleno:
+                    print(f"Palabra similar encontrada en dic_lleno: '{palabra_similar}'")
+                    encontrada = True
+                    dic_vacio[clave1]=dic_lleno[palabra_similar]
+                    break  # Salir del bucle una vez que se encuentra una palabra similar
+
+print('Ahora el campo en el diccionario vacio queda asi')
+print(dic_vacio)
+
+"""
+
+
 
