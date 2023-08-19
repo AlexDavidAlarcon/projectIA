@@ -9,7 +9,7 @@ pytesseract.pytesseract.tesseract_cmd = r"C:/Program Files/Tesseract-OCR/tessera
 
 # Cargar la imagen y convertirla a escala de grises
 img_lleno = cv2.imread("imagen2.png")
-img_vacio = cv2.imread("imagen2_vacia.png")
+img_vacio = cv2.imread("imagen_sinonimo.png")
 
 def leerFormulario(img):
     color = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -74,6 +74,10 @@ def leerFormulario(img):
         x1, y1, x2, y2 = coords
         roi_left = gray[y1:y2, 0:x1]
         content_left = pytesseract.image_to_string(roi_left, lang="spa")
+        # Eliminar espacios en blanco alrededor de la clave y valor
+        content_left = content_left.strip()
+        content = content.strip()
+
         contents_dictionary[content_left] = content
 
     # Mostrar el contenido almacenado en el diccionario
@@ -92,25 +96,22 @@ dic_lleno = leerFormulario(img_lleno)
 
 dic_vacio = leerFormulario(img_vacio)
 
-# como se podria aplicar al proyecto
-"""
-dic_lleno ={'nombres':'Denisse','residencia':'mucho lote','email':'deniagui@espol'}
-dic_vacio={'nombres':'','domicilio':'','correo':''}
-
-print("diccionario vacio: ", dic_vacio)
 print("diccionario lleno: ", dic_lleno)
+print("diccionario vacio: ", dic_vacio)
 
 # Obtener las claves de ambos diccionarios
 claves_formlleno = dic_lleno.keys()
 claves_formvacio = dic_vacio.keys()
+# Cambia la ruta al archivo GloVe que tienes
+glove_file = 'embeddings-l-model.vec'
 
-## Cargar modelo de embeddings en formato .vec (Word2Vec)
-embeddings_model = KeyedVectors.load_word2vec_format('embeddings-l-model.vec', binary=False, limit=50000)
+# Carga los vectores GloVe
+embeddings_model = KeyedVectors.load_word2vec_format(glove_file, binary=False, limit=50000) #, no_header=True
 
 for clave1 in claves_formvacio:
     if clave1 not in claves_formlleno:
             print(f"Buscando sinónimos para clave '{clave1}':")
-            similares = embeddings_model.most_similar(clave1)
+            similares = embeddings_model.most_similar(clave1, topn = 50) #topn=50
             palabras_similares = [similar[0] for similar in similares]
             print(palabras_similares)
             encontrada = False
@@ -120,11 +121,14 @@ for clave1 in claves_formvacio:
                     encontrada = True
                     dic_vacio[clave1]=dic_lleno[palabra_similar]
                     break  # Salir del bucle una vez que se encuentra una palabra similar
+    else:
+        dic_vacio[clave1] = dic_lleno[clave1]
+
 
 print('Ahora el campo en el diccionario vacio queda asi')
 print(dic_vacio)
 
-"""
+
 
 
 
