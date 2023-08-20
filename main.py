@@ -345,18 +345,21 @@ def llenar_campos_en_imagen(img, dic_lleno, dic_vacio):
 
             # Encontrar la posición de la clave en la imagen
             posicion = img_content.find(clave_vacio)
-            print("posicion:",posicion)
+            print("posicion:",x1,y1)
             # Agregar el valor en la imagen utilizando putText
-            cv2.putText(
-                img_con_texto,
-                valor_lleno,
-                (10, posicion * 20),  # Ajusta la posición según tus necesidades
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.8,
-                (0, 0, 255),
-                2,
-                cv2.LINE_AA,
-            )
+            for coords in textbox_contents.keys():
+                x1, y1, x2, y2 = coords
+                # cv2.rectangle(img, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                cv2.putText(
+                    img_con_texto,
+                    valor_lleno,
+                    (x1+5, y1+20),  # Ajusta la posición según tus necesidades
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.6,
+                    (0, 0, 0),
+                    1,
+                    cv2.LINE_AA,
+                )
 
 
     return img_con_texto
