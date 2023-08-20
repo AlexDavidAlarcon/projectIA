@@ -8,7 +8,7 @@ from unidecode import unidecode  # quitar tildes
 pytesseract.pytesseract.tesseract_cmd = r"C:/Program Files/Tesseract-OCR/tesseract"
 
 # Cargar la imagen y convertirla a escala de grises
-img_lleno = cv2.imread("imagen2.png")
+img_lleno = cv2.imread("imagen_prueba_color.jpeg")
 img_vacio = cv2.imread("imagen_sinonimo.png")
 
 def leerFormulario(img):
@@ -33,7 +33,6 @@ def leerFormulario(img):
             thresholded, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 11, 2
         )
 
-
     cv2.imshow("binary", binary)
     cv2.waitKey(0)
 
@@ -51,15 +50,12 @@ def leerFormulario(img):
         # Ajustar valores según el tamaño de tus campos
         if 500 < area:
             textbox_regions.append((x, y, x + w, y + h))
-    print("x, y, x + w, y + h:", x, y, x + w, y + h)
 
     # Procesar el contenido de cada región
     textbox_contents = {}
 
     for region in textbox_regions:
         x1, y1, x2, y2 = region
-        print("x, y, x2, y2", x1, y1, x2 , y2)
-
         roi = gray[y1:y2, x1:x2]
         content = pytesseract.image_to_string(roi, lang="spa")
         textbox_contents[(x1, y1, x2, y2)] = content
@@ -81,8 +77,8 @@ def leerFormulario(img):
         texto_sin_tildes = unidecode(content_left)
         texto_sin_tilde = unidecode(content)
         #Quitar espacios
-        content_left = texto_sin_tildes.strip()
-        content = texto_sin_tilde.strip()
+        content_left = texto_sin_tildes.strip().lower()
+        content = texto_sin_tilde.strip().lower()
         # Quitar el punto al final del texto, si existe
         if content_left.endswith('.'):
             content_left = content_left[:-1]
@@ -101,7 +97,6 @@ def leerFormulario(img):
     cv2.waitKey(0)
     #cv2.destroyAllWindows()
     return contents_dictionary
-
 
 dic_lleno = leerFormulario(img_lleno)
 
@@ -140,10 +135,8 @@ def llenar_diccionario(dic_lleno,dic_vacio):
     print(dic_vacio)
     return dic_vacio
 
-
 diccionario = llenar_diccionario(dic_lleno,dic_vacio)
 print("diccionario llenado:",diccionario)
-
 
 def llenar_campos_en_imagen(img, dic_lleno, dic_vacio):
 
@@ -230,9 +223,7 @@ def llenar_campos_en_imagen(img, dic_lleno, dic_vacio):
         )
 
     img_con_texto = img.copy()
-
     return img_con_texto
-
 
 # Cargar la imagen en la que quieres llenar los campos
 img_a_llenar = cv2.imread("imagen_sinonimo.png")
