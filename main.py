@@ -3,13 +3,16 @@ import numpy as np
 import pytesseract
 from gensim.models import KeyedVectors
 from unidecode import unidecode  # quitar tildes
-
+import re
 # Configurar Tesseract
 pytesseract.pytesseract.tesseract_cmd = r"C:/Program Files/Tesseract-OCR/tesseract"
 
 # Cargar la imagen y convertirla a escala de grises
-img_lleno = cv2.imread("imagen_prueba_color.jpeg")
-img_vacio = cv2.imread("imagen_sinonimo.png")
+img_lleno = cv2.imread("dataset_prueba/campos_arriba.png")
+img_vacio = cv2.imread("dataset_prueba/imagen_sinonimo.png")
+
+cv2.imshow("Formulario a procesar", img_lleno)
+cv2.waitKey(0)
 
 def leerFormulario(img):
     color = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -49,7 +52,7 @@ def leerFormulario(img):
 
         # Ajustar valores según el tamaño de tus campos
         if 500 < area:
-            textbox_regions.append((x, y, x + w, y + h))
+            textbox_regions.append((x, y, x + w, y + h)) #(x, y, x + width, y + height)
 
     # Procesar el contenido de cada región
     textbox_contents = {}
@@ -64,28 +67,69 @@ def leerFormulario(img):
     for coords in textbox_contents.keys():
         x1, y1, x2, y2 = coords
         cv2.rectangle(img, (x1, y1), (x2, y2), (0, 255, 0), 2)
-
     # Procesar y almacenar el contenido a la izquierda de cada región de textbox en un diccionario
     contents_dictionary = {}
 
     for coords, content in textbox_contents.items():
         x1, y1, x2, y2 = coords
+        # Probar la parte izquierda del textbox
         roi_left = gray[y1:y2, 0:x1]
         content_left = pytesseract.image_to_string(roi_left, lang="spa")
+        content_left = unidecode(content_left).strip().lower()
+
+        # Probar la parte superior del textbox
+        # Buscar el contenido arriba de la región actual
+        roi_top = gray[max(0, y1 - 20):y1, x1:x2]
+        content_top = pytesseract.image_to_string(roi_top, lang="spa")
+        content_top = unidecode(content_top).strip().lower()
+
+        # Probar la parte inferior del textbox
+        roi_bottom = gray[y2:min(y2 + 20, img.shape[0]), x1:x2]
+        content_bottom = pytesseract.image_to_string(roi_bottom, lang="spa")
+        content_bottom = unidecode(content_bottom).strip().lower()
+
+        # Si hay contenido a la izquierda, arriba o abajo, almacenar en el diccionario
+        if content_left:
+            # texto_sin_tildes = unidecode(content_left)
+            # texto_sin_tilde = unidecode(content)
+            # Quitar espacios
+            content_left = content_left.strip().lower()
+            content = content.strip()
+            # Quitar el punto al final del texto, si existe
+            if content_left.endswith('.') or content_left.endswith(':'):
+                content_left = content_left[:-1]
+            elif content.endswith("."):
+                content = content[:-1]
+            contents_dictionary[content_left] = content
+
+
+        elif content_top:
+            texto_sin_tildes = unidecode(content_top)
+            texto_sin_tilde = unidecode(content)
+            # Quitar espacios
+            content_top = texto_sin_tildes.strip().lower()
+            content = texto_sin_tilde.strip()
+            # Quitar el punto al final del texto, si existe
+            if content_top.endswith('.') or content_top.endswith(':'):
+                content_top = content_top[:-1]
+            elif content.endswith("."):
+                content = content[:-1]
+            contents_dictionary[content_top] = content
+
+
+        elif content_bottom:
+            texto_sin_tildes = unidecode(content_bottom)
+            texto_sin_tilde = unidecode(content)
+            # Quitar espacios
+            content_bottom = texto_sin_tildes.strip().lower()
+            content = texto_sin_tilde.strip()
+            # Quitar el punto al final del texto, si existe
+            if content_bottom.endswith('.') or content_bottom.endswith(':'):
+                content_bottom = content_bottom[:-1]
+            elif content.endswith("."):
+                content = content[:-1]
+            contents_dictionary[content_bottom] = content
         # Eliminar espacios en blanco alrededor de la clave y valor
-
-        texto_sin_tildes = unidecode(content_left)
-        texto_sin_tilde = unidecode(content)
-        #Quitar espacios
-        content_left = texto_sin_tildes.strip().lower()
-        content = texto_sin_tilde.strip().lower()
-        # Quitar el punto al final del texto, si existe
-        if content_left.endswith('.'):
-            content_left = content_left[:-1]
-        elif content.endswith("."):
-            content = content[:-1]
-
-        contents_dictionary[content_left] = content
 
     # Mostrar el contenido almacenado en el diccionario
     for clave, valor in contents_dictionary.items():
@@ -117,19 +161,31 @@ def llenar_diccionario(dic_lleno,dic_vacio):
 
     for clave1 in claves_formvacio:
         if clave1 not in claves_formlleno:
-                print(f"Buscando sinónimos para clave '{clave1}':")
-                similares = embeddings_model.most_similar(clave1, topn = 50) #topn=50
+            print(f"Buscando sinónimos para clave '{clave1}':")
+
+            # Verificar si la palabra clave existe en el vocabulario
+            if clave1 in embeddings_model:
+                similares = embeddings_model.most_similar(clave1, topn=50)
                 palabras_similares = [similar[0] for similar in similares]
+
                 print(palabras_similares)
                 encontrada = False
                 for palabra_similar in palabras_similares:
                     if palabra_similar in claves_formlleno:
                         print(f"Palabra similar encontrada en dic_lleno: '{palabra_similar}'")
                         encontrada = True
-                        dic_vacio[clave1]=dic_lleno[palabra_similar]
+                        dic_vacio[clave1] = dic_lleno[palabra_similar]
                         break  # Salir del bucle una vez que se encuentra una palabra similar
+
+                if not encontrada:
+                    print(f"Palabra clave '{clave1}' no tiene sinónimos en el vocabulario")
+            else:
+                print(f"Palabra clave '{clave1}' no está presente en el vocabulario")
         else:
             dic_vacio[clave1] = dic_lleno[clave1]
+
+    print('Ahora el campo en el diccionario vacio queda asi')
+    print(dic_vacio)
 
     print('Ahora el campo en el diccionario vacio queda asi')
     print(dic_vacio)
@@ -162,7 +218,6 @@ def llenar_campos_en_imagen(img, dic_lleno, dic_vacio):
         )
 
     cv2.imshow("binary", binary)
-    cv2.waitKey(0)
 
     # Obtener el contenido de la imagen
     img_content = pytesseract.image_to_string(gray, lang="spa")
@@ -207,8 +262,13 @@ def llenar_campos_en_imagen(img, dic_lleno, dic_vacio):
     # Dibujar las coordenadas en la imagen
     for coords, valor_lleno in zip(textbox_contents.keys(), dic_lleno.values()):
         x1, y1, x2, y2 = coords
-        cv2.rectangle(img, (x1, y1), (x2, y2), (0, 255, 0), 2)
-        print("x1, y1, x2, y2", x1, y1, x2, y2)
+        # cv2.rectangle(img, (x1, y1), (x2, y2), (0, 255, 0), 2)
+        # print("x1, y1, x2, y2", x1, y1, x2, y2)
+
+        match = re.search(r"(gmail|outlook|yahoo|hotmail)", valor_lleno)
+        if match:
+            start_index = match.start()
+            valor_lleno = valor_lleno[:start_index-1] + "@" + valor_lleno[start_index :]
 
         # Agregar el valor desde dic_lleno en la imagen utilizando putText
         cv2.putText(
@@ -224,12 +284,8 @@ def llenar_campos_en_imagen(img, dic_lleno, dic_vacio):
 
     img_con_texto = img.copy()
     return img_con_texto
-
-# Cargar la imagen en la que quieres llenar los campos
-img_a_llenar = cv2.imread("imagen_sinonimo.png")
-
 # Llamar a la función para llenar y escribir en los campos de la imagen
-img_con_campos_llenos = llenar_campos_en_imagen(img_a_llenar, diccionario, dic_vacio)
+img_con_campos_llenos = llenar_campos_en_imagen(img_vacio, diccionario, dic_vacio)
 
 # Mostrar la imagen con los campos llenados y escritos
 cv2.imshow("Imagen con campos llenados", img_con_campos_llenos)
